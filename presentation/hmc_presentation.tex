@@ -1,0 +1,478 @@
+% This text is proprietary.
+% It's a part of presentation made by myself.
+% It may not used commercial.
+% The noncommercial use such as private and study is free
+% Sep. 2005 
+% Author: Sascha Frank 
+% University Freiburg 
+% www.informatik.uni-freiburg.de/~frank/
+
+
+\documentclass{beamer}
+\usetheme{Hannover}
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage[]{algorithm2e}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{tcolorbox}
+\usepackage{animate}
+\tcbuselibrary{theorems}
+
+\begin{document}
+\title{Hamiltonian Monte Carlo}   
+\author{Alexander Fengler} 
+\date{\today} 
+
+\newtcbtheorem[number within=section]{theos}{Theorem}%
+{colback=blue!5,colframe=black!35!black,fonttitle=\bfseries}{th}
+\newtcbtheorem[number within=section]{defs}{Definition}%
+{colback=blue!5,colframe=black!35!black,fonttitle=\bfseries}{th}
+\newtcbtheorem[number within=section]{lems}{Lemma}%
+{colback=blue!5,colframe=black!35!black,fonttitle=\bfseries}{th}
+\newtcbtheorem[number within=section]{cors}{Corollary}%
+{colback=blue!5,colframe=black!35!black,fonttitle=\bfseries}{th}
+
+\frame{\titlepage} 
+
+\frame{\frametitle{Table of contents}\tableofcontents} 
+
+\section{BIVARIATE GAUSSIAN}
+
+
+\frame{\frametitle{Standard Bivariate Gaussian}
+$$ f(\mathbf{x} | \Sigma, \mu = 0) =  \frac{1}{det(2\pi \Sigma)^{-\frac{1}{2}}}e^{-\frac{1}{2} \mathbf{x}^{'}\Sigma^{-1} \mathbf{x} }$$
+
+As a running example we will use the \textbf{Bivariate Gaussian} distribution. 
+
+\null
+
+It is simple, but enough to illustrate basic \textbf{shortcomings}, of the \textbf{Metropolis} and \textbf{Gibbs} samplers.
+
+\null
+
+These shortcomings get exacerbated in \textbf{high dimensions}.
+}
+
+\frame{\frametitle{Standard Bivariate Gaussian}
+To show the limitations of \textbf{Metropolis} and \textbf{Gibbs} samplers, we consider the following covariance matrix structures, respectively.
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale= 0.3]{pictures/all_biv_gauss.png}
+	\label{fig:all_biv_gauss}
+\end{figure}
+}
+
+\section{METROPOLIS / GIBBS}
+
+\frame{\frametitle{Metropolis}
+Consider the basic \textbf{Metropolis} sampler with symmetric \textbf{proposal distribution}, 
+
+$$q ~ N(0, \sigma\mathbf{I})$$ 
+
+We have access to \textbf{one parameter}, $\sigma$, the \textbf{standard deviation of the proposal}.
+}
+
+
+\frame{\frametitle{Metropolis}
+Keeping $\sigma = 1$ constant, consider the following \textbf{target distributions},
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale= 0.3]{pictures/metrop_vratio_summary.png}
+	\label{fig:metrop_vratio_summary}
+\end{figure}
+
+}
+
+
+\frame{\frametitle{Metropolis}
+Changing $\sigma$ helps in adjusting the \textbf{acceptance rate}, but also affects \textbf{autocorrelation}, and therefore the \textbf{effective sample size}.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale= 0.35]{pictures/metrop_autocorrelation_summary.png}
+	\label{fig:metrop_autocorrelation_summary}
+\end{figure}	
+	
+It takes the random walk too long to cover significant distance in space. 
+}
+
+\frame{\frametitle{Metropolis}
+For the \textbf{Metropolis Random Walk Algorithm}, the \textbf{proposal standard deviation} is limited by the \textbf{dimension with lowest variance}. 
+
+\null 
+
+Greatly \textbf{uneven variances} across dimensions, negatively impact the performance of the sampler greatly. 
+
+\null 
+
+We want to \textbf{control the acceptance rate}, but on the \textbf{cost of speed of exploration} of the target space (\textbf{mixing}).	
+	
+}
+
+\frame{\frametitle{Gibbs}
+	Next we consider the \textbf{Gibbs sampler}. We observe that correlation in the \textbf{target distribution} introduces \textbf{autocorrelation} into the \textbf{Markov Chain}.
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[scale= 0.3]{pictures/gibbs_autocorrelation_summary.png}
+		\label{fig:gibbs_autocorrelation_summary}
+	\end{figure}	
+}
+
+\frame{\frametitle{Gibbs}
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[scale= 0.3]{pictures/gibbs_sample_path.png}
+		\label{fig:gibbs_sample_path}
+	\end{figure}
+	
+	The \textbf{geometry} of a target distribution with \textbf{high correlation}, disfavors the constriction of the \textbf{Gibbs sampler} to consecutive vertical and horizontal steps.
+}
+
+\section{HMC: THEORY AND SETUP}
+
+\frame{\frametitle{Section Summary}
+	\textbf{Root cause} for inefficiency of the \textbf{simple metropolis sampler} is the \textbf{random walk behavior}. 
+	
+	\null
+	
+	If the respective \textbf{standard deviations} of the target distribution greatly differ by dimension, exploration of the sampler space can be very inefficient. (Adaptations to overcome this issue exist, but not discussed here)
+	
+	\null 
+	
+	\textbf{Root cause} for inefficiency of the \textbf{gibbs sampler}, is the restriction to vertical and horizontal steps (in 2 dimensions), the efficiency of which depends on the geometry of the target distributions.
+	 
+}
+
+\frame{\frametitle{HMC: Goal}
+	The motivation behind \textbf{Hamiltonian Monte Carlo} methods is to find a sampling scheme that is able to provide good \textbf{mixing properties}, from distributions with difficult geometric properties in high dimensions.
+	\null
+	
+	\null
+	The \textbf{aim} is to allow for movements in arbitrary directions in space (overcoming limitations of \textbf{Gibbs sampler}), while avoiding the shortcomings of simple random walk behavior (overcoming limitations of \textbf{Metropolis sampler}).
+}
+
+\frame{\frametitle{HMC}
+	\textbf{Hamiltonian Monte Carlo} falls under the class of \textbf{auxiliary variable methods}. 
+	
+	\null
+	
+	\textbf{Mini-recap}
+	
+	\null 
+	
+	$\mathbf{X} \sim f(\mathbf{x})$, where $f(\mathbf{x})$ can be \textbf{evaluated}, but not easily \textbf{sampled}. Then, 
+	
+	\begin{enumerate}  
+		\item Augment $\mathbf{X}$, by a vector of \textbf{auxiliary variables}, $\mathbf{U}$
+		\item Construct a \textbf{Markov Chain} over $(\mathbf{X}, \mathbf{U})$, with \textbf{stationary distribution} $(\mathbf{X}, \mathbf{U}) \sim f(\mathbf{x},\mathbf{u})$, that \textbf{marginalizes} to the \textbf{target}, $f(\mathbf{x})$
+		\item Discard $\mathbf{U}$ and do \textbf{inference} based on $\mathbf{X}$ only
+	\end{enumerate}
+}
+
+\frame{\frametitle{HMC: Setup}
+	
+	\textbf{Hamiltonian Dynamics}
+
+	\begin{itemize}
+		\item $d$-dimensional \textbf{position vector} $q$ 
+		\item $d$-dimensional \textbf{momentum vector} $p$
+		\item \textbf{Hamiltonian} $H(q,p)$
+	\end{itemize}
+
+	Where, 
+	
+	\begin{align*}
+	\frac{dq_i}{dt} & = \frac{\partial \mathbf{H}}{\partial p_i} \\
+	\frac{dp_i}{dt} & = -\frac{\partial \mathbf{H}}{\partial q_i}
+	\end{align*}
+	
+	for $i = 1, ... , d$.
+}
+
+\frame{\frametitle{Important Property: 1}
+\textbf{Property: Reversibility}
+
+\null
+
+\textbf{Define}, $T_s$ the mapping from \textbf{state} at \textbf{time} $t$, $(q(t),p(t)$ to the \textbf{state} at \textbf{time} $t+s$, $(q(t+s), p(t+s))$.
+
+\null
+
+The mapping is \textbf{one-to-one} and therefore has an \textbf{inverse} $T_{-s}$ (obtained by \textbf{negating derivatives} in \textbf{Hamiltonian equations})
+
+\null 
+
+\textbf{Important}, because it is backbone of proof that \textbf{MCMC updates} by \textbf{Hamiltonian Dynamics} leave the desired distribution invariant.
+
+}
+
+\frame{\frametitle{Important Property: 2}
+\textbf{Property: Conservation of Hamiltonian}
+
+Hamiltonian dynamics keep $H(q,p)$ invariant. 
+
+\null
+
+\textbf{Proof:}
+\begin{align*}
+\frac{d \mathbf{H}}{dt} & = \sum^d_{i = 1} \left[   \frac{dq_i}{dt} \frac{\partial \mathbf{H}}{\partial q_i} + \frac{dp_i}{dt} \frac{\partial \mathbf{H}}{\partial p_i}\right] \\
+& = \sum^d_{i = 1} \left[   \frac{\partial \mathbf{H}}{\partial p_i} \frac{\partial \mathbf{H}}{\partial q_i} - \frac{\partial \mathbf{H}}{\partial q_i} \frac{\partial \mathbf{H}}{\partial p_i}\right] \\
+&  = 0
+\end{align*}
+\null
+
+\textbf{Important}, because this implies that for \textbf{metropolis updates} using a proposal found via \textbf{Hamiltonian Dynamics}, we get an \textbf{acceptance probability} of $1$. 
+}
+
+\frame{\frametitle{Important Property: 3}
+\textbf{Property: Symplecticness}
+
+\null
+
+\begin{small}
+Let $z = (q,p)$, then we can write the \textbf{Hamiltonian equations} as:
+
+$$ \frac{dz}{dt} = \mathbf{J} \nabla \mathbf{H} $$
+
+where, 
+
+$$ J = \left[ {\begin{array}{cc}
+	0_{d \times d} & I_{d \times d} \\
+	-I_{d \times d}  & 0_{d \times d} \\
+	\end{array} } \right] $$ 
+
+\textbf{Symplectiness} means that the \textbf{Jacobian} of $T_s$, $\mathbf{B_s}$ satisfies,
+
+$$ \mathbf{B}^T_s \mathbf{J}^{-1} \mathbf{B_s} = \mathbf{J}^{-1} \rightarrow det(\mathbf{B}_s) = 1 $$
+
+\textbf{Implies} volume preservation of hamiltonian dynamics, which is important to avoid calculating \textbf{Jacobians} of the mapping $T_s$ for acceptance probabilities in \textbf{Metropolis updates}.
+\end{small}
+}
+
+\frame{\frametitle{Simulating Hamiltonian Dynamics}
+	\textbf{Leapfrog Method: (full step)}
+	
+	\null
+	
+	\begin{align*}
+		p_i(t + \epsilon / 2) & = p_i(t) - (\epsilon / 2) \frac{\partial \mathbf{H}}{\partial q_i} (q(t)) \\
+		q_i(t + \epsilon) & = q_i(t) + \epsilon \frac{\partial \mathbf{H}}{\partial p_i} p(t + \epsilon / 2) \\
+		p_i(t + \epsilon) & = p_i(t + \epsilon / 2) - (\epsilon / 2) \frac{\partial \mathbf{H}}{\partial q_i} (q(t + \epsilon)) \\ 
+	\end{align*}
+	
+	Given suitable choice of $\mathbf{H}(q,p)$ the \textbf{leap-frog method}, \textbf{preserves volume}. (More on that later)
+	
+	The method is \textbf{symmetric}, therefore \textbf{reversible} by simply negating $p$, the \textbf{momentum vector}.	
+}
+
+
+\frame{\frametitle{Canonical Distributions}
+	\begin{small}
+	We can relate our target distribution $f(\mathbf{x}, \mathbf{u})$ to a \textbf{potential energy function}. Given \textbf{energy function} $E(\mathbf{x})$, for state $\mathbf{x}$ of some physical system, we can define a \textbf{canonical distribution} (\textbf{PDF}). 
+	\end{small}
+
+	$$ P(\mathbf{x}) = \frac{1}{Z} exp(-E(\mathbf{x})/T) $$
+	
+	\begin{small}For our purposes we set, \end{small}
+	
+	$$ P(q,p) = \frac{1}{Z} exp(-\mathbf{H}(q,p)/T)$$
+	
+	\begin{small} setting $\mathbf{H}(q,p) = U(q) + K(p)$, \end{small}
+	
+	$$ P(q,p) = \frac{1}{Z} exp(-U(q) / T) exp(-K(p)/T) $$
+}
+
+\frame{\frametitle{Canonical Distributions}
+	\begin{small}
+	$$ P(q,p) = \frac{1}{Z} exp(-U(q) / T) exp(-K(p)/T) $$
+	
+	\null
+	
+	
+	Now we set $T = 1$,  $U(q) = - log(f(\mathbf{x}))$ and choose a \textbf{kinetic energy function}, $K(p) = \mathbf{p}^T \mathbf{M}^{-1} \mathbf{p} / 2$. \\
+	
+	\null
+	
+	We get, 
+	
+	$$ P(q,p) \propto f(\mathbf{x}) exp(-\mathbf{p}^T \mathbf{M}^{-1} \mathbf{p} / 2) $$ 
+	
+	crucially,
+	
+	$$ \int P(q,p)dp = \int f(\mathbf{x}) exp(-\mathbf{p}^T \mathbf{M}^{-1} \mathbf{p} / 2) dx = f(\mathbf{x}) $$ 
+	
+	for appropriate normalization constants.
+	
+	\null
+	
+	Hence, this construction is in line with the framework of \textbf{auxiliary variable methods}
+	\end{small}
+}
+
+\frame{\frametitle{The HMC Algorithm}
+		\begin{small}
+			$$ P(q,p) \propto f(\mathbf{x}) exp(-\mathbf{p}^T \mathbf{M}^{-1} \mathbf{p} / 2) $$ 
+		\end{small}
+	\null 
+	
+	\begin{footnotesize}
+	At time $t$, given $\mathbf{q}_t$,
+ 	
+ 	\null 
+ 	
+	\textbf{STEP 1:}
+	
+	Sample \textbf{momentum variables} from $N(0, \mathbf{M})$.
+	
+	[By \textbf{independence}, $\mathbf{p}$ is drawn from its correct \textbf{conditional distribution}]	
+	
+	\null
+	
+	Now given $\mathbf{q}_t$ and $\mathbf{p}_t$,
+	
+	\null 
+	
+	\textbf{STEP 2:}
+	
+	Simulate $L$, $\epsilon$-length \textbf{leap-frog steps} of the \textbf{Hamiltonian Dynamics}, to get proposed state $(\mathbf{q}^*, \mathbf{p}^*)$, and accept with probability,
+	
+	\begin{tiny}
+		$$ min \left[1, exp(-\mathbf{H}(\mathbf{q}^*, \mathbf{p}^*) + \mathbf{H}(\mathbf{q}_t, \mathbf{p}_t))\right]  = min \left[1, exp(-U(\mathbf{q}^*) + U(\mathbf{q}_t)) - K(\mathbf{p}^*) + K(\mathbf{p}_t)\right]$$
+	\end{tiny}	
+	\end{footnotesize}
+}
+
+\section{HMC: EXAMPLES AND COMPARISON}
+
+\frame{\frametitle{Example: 1}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale= 0.4]{pictures/hmc_simple_example.png}
+	\label{fig:hmc_simple_example_1}
+\end{figure}
+
+}
+
+
+
+\frame{\frametitle{Example: 2}
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[scale= 0.4]{pictures/hmc_simple_example_2.png}
+		\label{fig:hmc_simple_example_@}
+	\end{figure}
+	
+}
+
+\frame{\frametitle{HMC VS. GIBBS}
+	\begin{figure}[H]
+		\centering
+		\includegraphics[scale= 0.5]{pictures/hmc_vs_gibbs_5000.png}
+		\label{fig:hmc_vs_gibbs_5000}
+	\end{figure}
+}
+
+\frame{\frametitle{HMC VS. GIBBS}
+	\begin{figure}[H]
+		\centering
+		\includegraphics[scale= 0.45]{pictures/hmc_vs_gibbs_100.png}
+		\label{fig:hmc_vs_gibbs_100}
+	\end{figure}	
+}
+
+\frame{\frametitle{HMC VS. METROPOLIS}
+	\begin{figure}[H]
+		\centering
+		\includegraphics[scale= 0.45]{pictures/hmc_vs_metropolis_5000.png}
+		\label{fig:hmc_vs_metropolis_5000}
+	\end{figure}
+}
+
+\section{HMC: TUNING AND LIMITATIONS}
+
+\frame{\frametitle{HMC: Concerns}
+	The \textbf{performance} of \textbf{HMC} depends crucially on the choice of it's parameters, $\epsilon$ and $L$. 
+	
+	\null
+	
+	We want to achieve good \textbf{mixing}, (large movements in space for consecutive steps), while avoiding two pitfalls.
+	
+	\null
+	\null
+	
+	\begin{enumerate}
+		\item \textbf{Periodicity} in the Hamiltonian Dynamics.
+		\item \textbf{Instability} of the Hamiltonian
+	\end{enumerate} 
+}
+
+\frame{\frametitle{Tuning: Periodicity}
+	\begin{figure}[H]
+		\centering
+		\includegraphics[scale= 0.45]{pictures/hmc_periodicity.png}
+		\label{fig:hmc_periodicity}
+	\end{figure}
+}
+
+\frame{\frametitle{Tuning: Instability of Hamiltonian}
+	\begin{figure}[H]
+		\centering
+		\includegraphics[scale= 0.45]{pictures/instability_of_hamiltonian.png}
+		\label{fig:instability_of_hamiltonian}
+	\end{figure}	
+}
+
+\frame{\frametitle{Tuning: Automatic Procedures}
+	Tuning the \textbf{HMC} parameters is crucial because the sampler is very sensitive to the choice of $L$, and $\epsilon$. 
+		
+	\null
+	
+	\textbf{Automatic Procedures} have been developed, of which the most widely used is the \textbf{No-U-Turn Sampler}. 
+	
+	\null 
+	
+	\begin{small}
+	The No-U-Turn Sampler: Adaptively Setting Path Lengths in Hamiltonian Monte Carlo, Matthew D. Hoffman, Andrew Gelman, \textit{Journal of Machine Learning Research}, 15 (2014), Pages: 1351-1381
+	\end{small}
+
+	\null
+
+	\textbf{Idea}, monitor \textbf{leapfrog steps} and interrupt progression if next step reduces distance to previous coordinate-position.
+}
+
+\frame{\frametitle{HMC: Limitations}
+	The \textbf{HMC} sampler needs access to, and uses, the \textbf{gradients} of the \textbf{target distribution} at run-time. 
+	
+	\null
+	\begin{itemize}
+	\item Not possible to use for \textbf{discrete distributions}. (Analytic tricks exists, but are not necessarily easy to handle)
+	\item \textbf{Computational cost} of single iterations is \textbf{high} compared to Metropolis / Gibbs and other simpler samplers. [my own code is around 100 times slower than Gibbs and Metropolis]
+	\end{itemize}
+	
+	Hence, for tractable problems for which standard samplers work reasonably well, they seem more advisable.
+}
+
+\frame{\frametitle{References and Code}
+	
+	\textbf{REFERENCES}
+	\begin{footnotesize}
+		\begin{itemize} 
+			\item The No-U-Turn Sampler: Adaptively Setting Path Lengths in Hamiltonian Monte Carlo, Matthew D. Hoffman, Andrew Gelman, \textit{Journal of Machine Learning Research}, 15 (2014), Pages: 1351-1381
+			\item Steve Brooks et. al. (2011). \textit{Handbook of Markov Chain Monte Carlo}, CRC Press
+		\end{itemize}
+	\end{footnotesize}
+	
+	\textbf{CODE}
+	
+	askldksldjaksldj
+}
+
+\end{document}

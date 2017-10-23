@@ -1,0 +1,6 @@
+\beamer@endinputifotherversion {3.33pt}
+\beamer@sectionintoc {1}{BIVARIATE GAUSSIAN}{3}{0}{1}
+\beamer@sectionintoc {2}{METROPOLIS / GIBBS}{5}{0}{2}
+\beamer@sectionintoc {3}{HMC: THEORY AND SETUP}{11}{0}{3}
+\beamer@sectionintoc {4}{HMC: EXAMPLES AND COMPARISON}{22}{0}{4}
+\beamer@sectionintoc {5}{HMC: TUNING AND LIMITATIONS}{27}{0}{5}
