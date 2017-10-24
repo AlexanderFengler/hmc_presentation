@@ -3,10 +3,10 @@
 \beamer@slide {fig:metrop_autocorrelation_summary}{7}
 \beamer@slide {fig:gibbs_autocorrelation_summary}{9}
 \beamer@slide {fig:gibbs_sample_path}{10}
-\beamer@slide {fig:hmc_simple_example_1}{22}
-\beamer@slide {fig:hmc_simple_example_@}{23}
-\beamer@slide {fig:hmc_vs_gibbs_5000}{24}
-\beamer@slide {fig:hmc_vs_gibbs_100}{25}
-\beamer@slide {fig:hmc_vs_metropolis_5000}{26}
-\beamer@slide {fig:hmc_periodicity}{28}
-\beamer@slide {fig:instability_of_hamiltonian}{29}
+\beamer@slide {fig:hmc_simple_example_1}{23}
+\beamer@slide {fig:hmc_simple_example_@}{24}
+\beamer@slide {fig:hmc_vs_gibbs_5000}{25}
+\beamer@slide {fig:hmc_vs_gibbs_100}{26}
+\beamer@slide {fig:hmc_vs_metropolis_5000}{27}
+\beamer@slide {fig:hmc_periodicity}{29}
+\beamer@slide {fig:instability_of_hamiltonian}{30}

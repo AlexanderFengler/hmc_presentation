@@ -20,6 +20,7 @@
 \usepackage{tcolorbox}
 \usepackage{animate}
 \tcbuselibrary{theorems}
+\usepackage{hyperref}
 
 \begin{document}
 \title{Hamiltonian Monte Carlo}   
@@ -45,6 +46,9 @@
 \frame{\frametitle{Standard Bivariate Gaussian}
 $$ f(\mathbf{x} | \Sigma, \mu = 0) =  \frac{1}{det(2\pi \Sigma)^{-\frac{1}{2}}}e^{-\frac{1}{2} \mathbf{x}^{'}\Sigma^{-1} \mathbf{x} }$$
 
+\null
+\null
+
 As a running example we will use the \textbf{Bivariate Gaussian} distribution. 
 
 \null
@@ -64,6 +68,7 @@ To show the limitations of \textbf{Metropolis} and \textbf{Gibbs} samplers, we c
 	\label{fig:all_biv_gauss}
 \end{figure}
 }
+
 
 \section{METROPOLIS / GIBBS}
 
@@ -348,6 +353,11 @@ $$ \mathbf{B}^T_s \mathbf{J}^{-1} \mathbf{B_s} = \mathbf{J}^{-1} \rightarrow det
 	\end{footnotesize}
 }
 
+\frame{\frametitle{Detailed Balance}
+We omit the proof, but \textbf{HMC} leaves the \textbf{canonical distribution invariant}.
+}
+
+
 \section{HMC: EXAMPLES AND COMPARISON}
 
 \frame{\frametitle{Example: 1}
@@ -417,9 +427,11 @@ $$ \mathbf{B}^T_s \mathbf{J}^{-1} \mathbf{B_s} = \mathbf{J}^{-1} \rightarrow det
 \frame{\frametitle{Tuning: Periodicity}
 	\begin{figure}[H]
 		\centering
-		\includegraphics[scale= 0.45]{pictures/hmc_periodicity.png}
+		\includegraphics[scale= 0.35]{pictures/hmc_periodicity.png}
 		\label{fig:hmc_periodicity}
 	\end{figure}
+
+	One way to avoid \textbf{periodicity} is to sample $\epsilon$ from a \textbf{range} of values at each iteration.
 }
 
 \frame{\frametitle{Tuning: Instability of Hamiltonian}
@@ -462,17 +474,38 @@ $$ \mathbf{B}^T_s \mathbf{J}^{-1} \mathbf{B_s} = \mathbf{J}^{-1} \rightarrow det
 
 \frame{\frametitle{References and Code}
 	
-	\textbf{REFERENCES}
+	
 	\begin{footnotesize}
+	\textbf{REFERENCES}
+		
 		\begin{itemize} 
 			\item The No-U-Turn Sampler: Adaptively Setting Path Lengths in Hamiltonian Monte Carlo, Matthew D. Hoffman, Andrew Gelman, \textit{Journal of Machine Learning Research}, 15 (2014), Pages: 1351-1381
-			\item Steve Brooks et. al. (2011). \textit{Handbook of Markov Chain Monte Carlo}, CRC Press
+			\item Brooks S. et. al. (2011). \textit{Handbook of Markov Chain Monte Carlo}, CRC Press
+			\item Givens G., Hoeting J. (2013). \textit{Computational Statistics}, Wiley	
 		\end{itemize}
-	\end{footnotesize}
+	
 	
 	\textbf{CODE}
 	
-	askldksldjaksldj
+		\begin{itemize}
+			\item \url{https://github.com/AlexanderFengler/hmc_presentation}
+		\end{itemize}
+	
+	\end{footnotesize}
 }
 
 \end{document}
+
+
+%\frame{\frametitle{Proof of Invariance}}
+%We want to prove that \textbf{HMC} leaves the canonical distribution invariant.
+%
+%First, we want to show \textbf{detailed balance} 
+%
+%Partition $(q,p)$ space into regions $A_k$ with small volume $V$. $T_L: A_k \rightarrow B_k$ is the mapping w.r.t $L$ leapfrog operations and final negation of momentum. 
+%
+%$T_L$ is \textbf{reversible}, hence the $B_k$'s also partition $(p,q)$ space. 
+%Leapfrog steps preserve volume, hence the $B_k$'s will also have volum $V$.
+%
+%We want $\forall i,j P(A_i)T(B_j|A_i) = P(B_j)T(A_i|B_j)$, 
+%we can show that in the limit, for finer and finer partitions of $(q,p)$, 
